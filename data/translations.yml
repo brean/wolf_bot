@@ -6,7 +6,9 @@ de:
   hunter: Jäger
   bot_name: "Der Bot heißt: {}"
   mem_in_chan: Ich habe {} Nutzer aus dem Channel {} genommen.
-  who_to_kill: Na, wer soll dran glauben?
+  who_to_kill: 
+    - Na, wer soll dran glauben?
+    - Du hast Hunger! Welcher Dorfbewohner wird dein Opfer?
   already_voted: Du hast schon abgestimmt!
   is_a_wolf: Der Spieler ist ein Werfolf!
   does_not_exist: Spieler {} existiert nicht!
@@ -20,7 +22,9 @@ en:
   hunter: Hunter
   bot_name: "The bot is called: {}"
   mem_in_chan: Got {} users from channel {}.
-  who_to_kill: Which one do you like to kill?
+  who_to_kill: 
+    - Which one do you like to kill?
+    - Feeding time! Which villager do you like to eat?
   already_voted: You already voted!
   is_a_wolf: That player is a werewolf!
   does_not_exist: Player {} does not exist!

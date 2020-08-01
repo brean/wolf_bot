@@ -3,7 +3,7 @@ import os
 
 import pathlib
 
-from random import shuffle
+from random import shuffle, choice
 
 from dotenv import load_dotenv
 
@@ -42,7 +42,11 @@ with open(pathlib.Path().absolute() / 'data' / 'translations.yml') as yaml_file:
 def translate(txt):
 	global translations, lang
 	if txt in translations[lang]:
-		return translations[lang][txt]
+		tra = translations[lang][txt]
+		if isinstance(tra, list):
+			return choice(tra)
+		else:
+			return tra
 	else:
 		return f'TRANSLATE_{text}'
 
@@ -173,7 +177,7 @@ class WerewolfGame:
 		self.witch_healed = False
 
 
-	async def assign_roles(self, player):
+	async def assign_roles(self, player: list):
 		"""Assign all roles to player."""
 		assert isinstance(player, list)
 		self.player = {}
@@ -280,7 +284,7 @@ class WerewolfGame:
 		# Nick += " (Tod)"
 		pass
 
-	def find_player(self, name_or_nick):
+	def find_player(self, name_or_nick: str):
 		"""Find a player by his name or nick. Checks the nick first!"""
 		for member in self.player.values():
 			if name_or_nick == member.nick:
