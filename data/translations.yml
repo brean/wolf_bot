@@ -1,0 +1,27 @@
+de:
+  you_are: "Du bist {}"
+  villager: Dorfbewohner
+  witch: Hexe
+  werewolf: Werwolf
+  hunter: Jäger
+  bot_name: "Der Bot heißt: {}"
+  mem_in_chan: Ich habe {} Nutzer aus dem Channel {} genommen.
+  who_to_kill: Na, wer soll dran glauben?
+  already_voted: Du hast schon abgestimmt!
+  is_a_wolf: Der Spieler ist ein Werfolf!
+  does_not_exist: Spieler {} existiert nicht!
+  new_game: Ein neues Spiel wurde begonnen.
+
+en:
+  you_are: "You are {}"
+  villager: Villager
+  witch: Witch
+  werewolf: Werewolf
+  hunter: Hunter
+  bot_name: "The bot is called: {}"
+  mem_in_chan: Got {} users from channel {}.
+  who_to_kill: Which one do you like to kill?
+  already_voted: You already voted!
+  is_a_wolf: That player is a werewolf!
+  does_not_exist: Player {} does not exist!
+  new_game: A new game started!

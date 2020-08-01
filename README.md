@@ -1,2 +1,3 @@
-# wolf_bot
+# WolfBot
+
 A Werewolf Discord bot
