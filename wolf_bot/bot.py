@@ -282,7 +282,7 @@ class WerewolfGame:
 		else:
 			await self.voting_witch_kill()
 
-	async def witch_awnsered_heal(self, msg):
+	async def witch_answered_heal(self, msg):
 		if msg.content.lower() in ['yes', 'ja']:
 			await self.player[WITCH].send(translate('witch_spare'))
 			self.kill_list = []
@@ -380,7 +380,7 @@ class WerewolfGame:
 		elif state == VOTING_WOLF and self.is_wolf(msg.author):
 			return await self.wolf_send_vote(msg)
 		elif state == VOTING_WITCH_HEAL and self.is_witch(msg.author):
-			return await self.witch_awnsered_heal(msg)
+			return await self.witch_answered_heal(msg)
 		elif state == VOTING_WITCH_KILL and self.is_witch(msg.author):
 			return await self.witch_answered_kill(msg)
 		# ignore all other messages to this bot
