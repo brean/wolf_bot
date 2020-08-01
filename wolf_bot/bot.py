@@ -22,9 +22,10 @@ VOTING_WITCH_HEAL = 'voting_witch_heal'
 VOTING_WITCH_KILL = 'voting_witch_kill'
 NIGHT_TO_DAY = 'night_to_day'
 VOTING_VILLAGE = 'voting_village'
+KILLING = 'killing'
 STATES = [
 	PRESTART, START, DAY_TO_NIGHT, VOTING_WOLF, VOTING_WITCH_HEAL, 
-	VOTING_WITCH_KILL, NIGHT_TO_DAY, VOTING_VILLAGE
+	VOTING_WITCH_KILL, KILLING, NIGHT_TO_DAY, VOTING_VILLAGE
 ]
 
 VILLAGER = 'villager'
@@ -176,6 +177,9 @@ class WerewolfGame:
 		# True, if the witch has used her ealing potion
 		self.witch_healed = False
 
+		# True, if the witch has used her poison
+		self.witch_killed = False
+
 
 	async def assign_roles(self, player: list):
 		"""Assign all roles to player."""
@@ -207,7 +211,7 @@ class WerewolfGame:
 		non_wolf = 0
 		for key, value in self.player.items():
 			# create list of channel and player to move
-			if key == 'wolf':
+			if key == WOLF:
 				for member in value:
 					move_player.append((self.werewolf_channel, member))
 			else:
@@ -235,7 +239,7 @@ class WerewolfGame:
 		self.current_state = VOTING_WOLF
 		self.wolf_votes = {}
 		self.wolf_voted = []
-		for wolf in self.player['wolf']:
+		for wolf in self.player[WOLF]:
 			await wolf.send(translate('who_to_kill'))
 		# end of this part of the round, we now need to wait for incoming 
 		# messages from wolfs
@@ -256,32 +260,95 @@ class WerewolfGame:
 		self.wolf_votes[member] += 1
 		self.wolf_voted.append(msg.author)
 		# now we need to check if all wolfes have voted
-		return await self.check_voting_end()
+		return await self.wolfes_check_voting_end()
 		
-	async def check_voting_end(self):
+	async def wolfes_check_voting_end(self):
 		"""evaluate the voting if all wolves decided on a victim."""
-		if sum(self.player['wolf']) == sum(self.wolf_voted):
+		if sum(self.player[WOLF]) == sum(self.wolf_voted):
 			# get player with most votes
 			member = max(self.wolf_votes, key=wolf_votes.get)
 			print('marked to kill: ', player)
 			# save in kill-list
 			self.kill_list.append(player)
+			await self.voting_witch_heal()
 		# else: voting not over, wait for other player to vote
 
 	async def voting_witch_heal(self):
-		# We tell the witch who will get killed
-		# We ask the witch if she wants to heal
-		pass
+		self.current_state = VOTING_WITCH_HEAL
+		# We tell the witch who will get killed and ask to heal
+		if not self.witch_healed:
+			kill_name = f'{self.kill_list[0].name} ({self.kill_list[0].nick})'
+			await self.player[WITCH].send(translate('ask_heal').format(kill_name))
+		else:
+			await self.voting_witch_kill()
 
+	async def witch_awnsered_heal(self, msg):
+		if msg.content.lower() in ['yes', 'ja']:
+			await self.player[WITCH].send(translate('witch_spare'))
+			self.kill_list = []
+			self.witch_healed = True
+			await self.voting_witch_kill()
+		elif msg.content.lower() in ['no', 'nein']:
+			await self.player[WITCH].send(translate('witch_ignore'))
+			await self.voting_witch_kill()
+		else:
+			await self.player[WITCH].send(translate('witch_repeat_heal'))
+			return
+		# the witch decided, go to next step: ask her to kill someone
+	
 	async def voting_witch_kill(self):
+		self.current_state = VOTING_WITCH_KILL
 		# Ask the witch if she wants to poison someone
-		pass
+		if not self.witch_killed:
+			await self.player[WITCH].send(translate('ask_kill'))
+		else:
+			await self.kill_player()
+
+	async def witch_answered_kill(self, msg):
+		# Ask the witch if she wants to poison someone
+		# WE ASSUME A PLAYER CAN NOT BE NAMED "no", otherwise he will always get killed
+		# this way a player can not cheat/get invincible by calling himself "no"
+		member = self.find_player(msg.content)
+		if member:
+			await self.player[WITCH].send(translate('witch_kill').format(member))
+			self.kill_list.append(member)
+			self.witch_killed = True
+			await self.kill_player()
+		elif msg.content.lower() in ['no', 'nein']:
+			await self.player[WITCH].send(translate('witch_no_kill'))
+			await self.kill_player()
+		else:
+			await self.player[WITCH].send(translate('witch_repeat_kill'))
+			return
+		# witch done, now it is time to kill and start the day
 
 	async def kill_player(self, member):
 		"""Kill player from kill list for real."""
-		# Mute player server wide
-		# Add dead-role
-		# Nick += " (Tod)"
+		# TODO: Mute player server wide
+		# TODO: assign dead-role 
+		# TODO: Nick += " (Tod)"
+		# TODO: check, if game is over!
+		await self.night_to_day(member)
+
+	async def night_to_day(self, member):
+		self.current_state = NIGHT_TO_DAY
+		# TODO: move all user back to main room (self.day_channel)
+		# TODO: inform player who are alive which player died
+		await self.voting_village_start()
+
+	async def voting_village_start(self):
+		self.current_state = VOTING_VILLAGE
+		# TODO: send message in text_channel that it is morning and that voting started
+		pass
+
+	async def villager_send_vote(self):
+		# TODO: (see wolf_send_vote)
+		pass
+
+	async def villager_check_voting_end(self):
+		# TODO: (see wolfes_check_voting_end)
+		# TODO: check, if all player voted and kill the player with most votes
+		# TODO: check, if game is over!
 		pass
 
 	def find_player(self, name_or_nick: str):
@@ -294,7 +361,10 @@ class WerewolfGame:
 				return member
 
 	def is_wolf(self, member):
-		return member in self.player['wolf']
+		return member in self.player[WOLF]
+
+	def is_witch(self, member):
+		return member in self.player[WITCH]
 
 	## handle discord messages
 	async def handle_channel_message(self, msg):
@@ -302,12 +372,17 @@ class WerewolfGame:
 			return await self.start()
 
 	async def handle_message(self, msg):
+		state = self.current_state
 		if msg.channel == self.text_channel:
 			return await self.handle_channel_message(msg)
-		if not self.player:
+		elif not self.player:
 			return
-		if self.current_state == VOTING_WOLF and msg.author in self.player['wolf']:
+		elif state == VOTING_WOLF and self.is_wolf(msg.author):
 			return await self.wolf_send_vote(msg)
+		elif state == VOTING_WITCH_HEAL and self.is_witch(msg.author):
+			return await self.witch_awnsered_heal(msg)
+		elif state == VOTING_WITCH_KILL and self.is_witch(msg.author):
+			return await self.witch_answered_kill(msg)
 		# ignore all other messages to this bot
 		
 

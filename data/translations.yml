@@ -13,6 +13,14 @@ de:
   is_a_wolf: Der Spieler ist ein Werfolf!
   does_not_exist: Spieler {} existiert nicht!
   new_game: Ein neues Spiel wurde begonnen.
+  ask_heal: Die Werewölfe haben entschieden, dass sie {} essen werden. Möchtest du heilen? (ja/nein)
+  ask_kill: Möchtest du jemanden vergiften? Antworte mit dem Namen des Spieler oder mit nein um das Gift später einzusetzen.
+  witch_spare: Okay, wird verschonen ihn/sie.
+  witch_ignore: Die Werwölfe werden sich freuen!
+  witch_repeat_heal: Bitte antworte nur mit ja oder nein.
+  witch_repeat_kill: Bitte antworte mit einem Spielernamen oder mit nein
+  witch_no_kill: Okay, diese Nacht bleibt die Flasche an ihrem Platz.
+  witch_kill: Du entscheidest dich {} zu vergiften.
 
 en:
   you_are: "You are {}"
@@ -29,3 +37,11 @@ en:
   is_a_wolf: That player is a werewolf!
   does_not_exist: Player {} does not exist!
   new_game: A new game started!
+  ask_heal: The wherewolfs decided to eat {}. Do you like to heal? (yes/no)
+  ask_kill: Do you like to use your poison to kill someone? Answer with the player name or no to keep the poison.
+  witch_spare: Okay, we will spare him/her.
+  witch_ignore: The werewolfs will be pleased!
+  witch_repeat_heal: Sorry, please answer only yes or no.
+  witch_repeat_kill: Please answer with a player name or no
+  witch_no_kill: Okay, this night the flask stays closed.
+  witch_kill: You decide to poison {}!
