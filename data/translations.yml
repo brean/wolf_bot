@@ -12,8 +12,9 @@ de:
   already_voted: Du hast schon abgestimmt!
   is_a_wolf: Der Spieler ist ein Werfolf!
   does_not_exist: Spieler {} existiert nicht!
+  wolf_voted_for: Du würdest also gerne {} fressen!
   new_game: Ein neues Spiel wurde begonnen.
-  ask_heal: Die Werewölfe haben entschieden, dass sie {} essen werden. Möchtest du heilen? (ja/nein)
+  ask_heal: Die Werwölfe haben entschieden, dass sie {} essen werden. Möchtest du heilen? (ja/nein)
   ask_kill: Möchtest du jemanden vergiften? Antworte mit dem Namen des Spieler oder mit nein um das Gift später einzusetzen.
   witch_spare: Okay, wird verschonen ihn/sie.
   witch_ignore: Die Werwölfe werden sich freuen!
@@ -21,6 +22,17 @@ de:
   witch_repeat_kill: Bitte antworte mit einem Spielernamen oder mit nein
   witch_no_kill: Okay, diese Nacht bleibt die Flasche an ihrem Platz.
   witch_kill: Du entscheidest dich {} zu vergiften.
+  village_start_voting: So kann es nicht weiter gehen! Einer muss dafür bezahlen! Wer soll auf dem Scheiterhaufen brennen? Entscheidet euch jetzt in diesem Channel für einen Mitspieler!
+  villager_voted: "{} wählt gegen {}!"
+  wakeup: Der Hahn kräht! Ein neuer Morgen! Alle werden langsam wach...
+  wakeup_kill: "Das heißt alle bis auf:"
+  wakeup_no_kill: Niemand ist diese Nacht gestorben!
+  and: und
+  yes: "ja"
+  no: "nein"
+  dead: Tod
+  villager_win: Und damit ist der letzte Wolf Tod! Die Dorfbewohner gewinnen!!!
+  wolf_win: Nur ein Dorfbewohner lebt noch, die Werwölfe haben gewonnen!!!
 
 en:
   you_are: "You are {}"
@@ -34,6 +46,7 @@ en:
     - Which one do you like to kill?
     - Feeding time! Which villager do you like to eat?
   already_voted: You already voted!
+  wolf_voted_for: So you would like to eat {}!
   is_a_wolf: That player is a werewolf!
   does_not_exist: Player {} does not exist!
   new_game: A new game started!
@@ -45,3 +58,14 @@ en:
   witch_repeat_kill: Please answer with a player name or no
   witch_no_kill: Okay, this night the flask stays closed.
   witch_kill: You decide to poison {}!
+  village_start_voting: This can't go on like this! Someone has to pay! Who has to burn in fire? Send your vote against a player to this text chat!
+  villager_voted: "{} votes against {}!"
+  wakeup: What a beautiful morning! Everybody wakes up...
+  wakeup_kill: "That means everybody except:"
+  wakeup_no_kill: Nobody died this night!
+  and: and
+  yes: "yes"
+  no: "no"
+  dead: "Dead"
+  villager_win: And that's it for the last werewolf! The villagers won!!!
+  wolf_win: Only one villager alive, the werewolfs won!!!
