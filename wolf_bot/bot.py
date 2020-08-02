@@ -108,7 +108,7 @@ class WerewolfGame:
 			self.settings = {
 				WITCH: 1,
 				WOLF: 1,
-				#HUNTER: 1,
+				# HUNTER: 1,
 			}
 		else:
 			self.settings = settings
@@ -206,6 +206,10 @@ class WerewolfGame:
 		for role, amount in self.settings.items():
 			await self.assign_role(player[index:index+amount], role)
 			index += amount
+		for role, members in self.player.items():
+			print(f'{role}:')
+			for member in members:
+				print(f' - {member.name}')
 		# the rest will become villagers
 		await self.assign_role(player[index:], VILLAGER)
 
@@ -415,12 +419,22 @@ class WerewolfGame:
 	async def kill_player(self, member):
 		"""Kill player from kill list for real."""
 		# assign dead-role 
+		print(f'Killing player {self.member_name(member)}')
 		await member.add_roles(self.dead_role)
 		# add user to "dead"-list with old user nick to rename after match
 		self.dead_player += [(member, member.nick)]
 		# add 'dead' to the nick and mute server-wide
 		name = member.nick if member.nick else member.name
-		await member.edit(nick=f'{name} ({translate("dead")})', mute=True)
+		try:
+			await member.edit(nick=f'{name} ({translate("dead")})')
+		except discord.errors.Forbidden:
+			await self.text_channel.send(
+				translate('nick_forbidden').format(self.member_name(member)))
+		try:
+			await member.edit(mute=True)
+		except discord.errors.Forbidden:
+			await self.text_channel.send(
+				translate('mute_forbidden').format(self.member_name(member)))
 		# remove member from player-dict
 		for role, members in self.player.items():
 			if member in members:
@@ -443,7 +457,14 @@ class WerewolfGame:
 		# Game Over - reset to PRESTART
 		self.current_state = PRESTART
 		for member, nick in self.dead_player:
-			await member.edit(nick=nick, mute=False)
+			try:
+				await member.edit(nick=nick)
+			except discord.errors.Forbidden:
+				pass  # error ignored
+			try:
+				await member.edit(mute=False)
+			except discord.errors.Forbidden:
+				pass  # error ignored
 			await member.remove_roles(self.dead_role)
 		self.dead_player = []
 
@@ -490,8 +511,17 @@ class WerewolfGame:
 
 	## handle discord messages
 	async def handle_channel_message(self, msg):
-		if self.current_state == PRESTART and msg.content == START_COMMAND:
-			return await self.start()
+		if self.current_state == PRESTART:
+			if msg.content == START_COMMAND:
+				return await self.start()
+			elif msg.content.startswith('!werwolf:'):
+				try:
+					num_wolf = int(msg.content[len('!werwolf:'):])
+				except ValueError:
+					pass
+				if num_wolf:
+					self.settings[WOLF] = num_wolf
+				await self.text_channel.send(translate('change_num_wolf').format(num_wolf))
 		elif self.current_state == VOTING_VILLAGE and self.is_player(msg.author):
 			await self.villager_send_vote(msg)
 
