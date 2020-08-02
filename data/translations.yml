@@ -31,13 +31,14 @@ de:
   and: und
   yes: "ja"
   no: "nein"
-  dead: Tod
-  villager_win: Und damit ist der letzte Wolf Tod! Die Dorfbewohner gewinnen!!!
+  dead: tod
+  villager_win: Und damit ist der letzte Wolf tod! Die Dorfbewohner gewinnen!!!
   wolf_win: Kein Dorfbewohner lebt mehr, die Werwölfe haben gewonnen!!!
   change_num_wolf: Setze Anzahl der Werwölfe auf {}
   mute_forbidden: Mir fehlen die Rechte zum stumm schalten von {}. Bitte ignoriert ihn, er ist Tod!
-  nick_forbidden: Mir fehlen die Rechte zum umbennen von {}. Er ist aber Tod!
+  nick_forbidden: Mir fehlen die Rechte zum umbennen von {}. Er ist aber tod!
   hunter_kill_vote: Wen möchtest du erschießen?
+  can_not_move_you: Hey, ich konnte dich nicht in den Channel {} verschieben. Bitte wechsel selbst in den Channel.
 
 en:
   you_are: "You are "
@@ -79,3 +80,4 @@ en:
   mute_forbidden: I am missing the rights to mute {}. Please ignore him!
   nick_forbidden: I am missing the rights to nick {}. Ignore him, he is dead!
   hunter_kill_vote: Who do you like to shoot?
+  can_not_move_you: Hey, I could not move you in channel {}. Please change into the channel on your own.

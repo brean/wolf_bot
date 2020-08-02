@@ -67,6 +67,17 @@ def get_member_from_channel(channel):
 	print(translate('mem_in_chan').format(len(mem), channel.name))
 	return mem
 
+def member_name(member):
+	"""Small helper to show user name and nick."""
+	return f'{member.name} ({member.nick})'
+
+async def try_to_move_channel(member, channel):
+	try:
+		await member.move_to(channel)
+	except discord.errors.HTTPException:
+		print(f'Can not move user: {member_name(member)}')
+		await member.send(translate('can_not_move_you').format(
+			self.channel.name))
 
 def get_voice_channel(channel_name):
 	"""Get voice channel by name."""
@@ -167,14 +178,14 @@ class WerewolfGame:
 		self.cleanup()
 		self.set_state(START)
 		print(translate('new_game'))
-		# 1. get all member from day-channel
+		# get all member from day-channel
 		day_player = get_member_from_channel(self.day_channel)
-		# 2. shuffle player
+		# shuffle player
 		rnd.shuffle(day_player)
-		# 3. player to their roles
+		# player to their roles
 		await self.assign_roles(day_player)
 		await self.text_channel.send(translate('new_game'))
-		# 4. start the first game loop - switch from day to night
+		# start the first game loop - switch from day to night
 		await self.day_to_night()
 
 	def cleanup(self):
@@ -230,10 +241,6 @@ class WerewolfGame:
 				translate('you_are') +
 				translate(role))
 
-	def member_name(self, member):
-		"""Small helper to show user name and nick."""
-		return f'{member.name} ({member.nick})'
-
 	# -- MAIN GAME LOOP --
 	async def day_to_night(self):
 		"""Switch from day to night, move everyone in his/her own little voice chat."""
@@ -260,7 +267,7 @@ class WerewolfGame:
 
 		# and now the moving itself
 		for channel, member in move_player:
-			await member.move_to(channel)
+			await try_to_move_channel(channel, member)
 
 		# the night has begone, the wolfs should start voting for the kill now!
 		await self.voting_wolfs_start()
@@ -306,7 +313,7 @@ class WerewolfGame:
 			await msg.author.send(translate('is_a_wolf'))
 			return
 		await msg.author.send(translate('wolf_voted_for').format(
-			self.member_name(member)))
+			member_name(member)))
 		self.wolf_votes.setdefault(member, 0)
 		self.wolf_votes[member] += 1
 		self.wolf_voted.append(msg.author)
@@ -329,7 +336,7 @@ class WerewolfGame:
 		# We tell the witch who will get killed and ask to heal
 		if not self.witch_healed and self.kill_list:
 			# we ASSUME that there can only be 1 person in the kill list by now
-			kill_name = self.member_name(self.kill_list[0])
+			kill_name = member_name(self.kill_list[0])
 			await self.player[WITCH][0].send(translate('ask_heal').format(kill_name))
 		else:
 			await self.voting_witch_kill()
@@ -400,7 +407,7 @@ class WerewolfGame:
 		# ...in random order to hide wolfs
 		rnd.shuffle(move_player)
 		for member in move_player:
-			await member.move_to(self.day_channel)
+			try_to_move_channel(self.day_channel, member)
 
 		if self.current_state != VOTING_HUNTER:
 			# let the hunter has to vote but we move everyone back to awake-channel.
@@ -412,7 +419,7 @@ class WerewolfGame:
 		if self.kill_list:
 			_and = translate('and')
 			txt += translate('wakeup_kill') + f' {_and} '.join(
-				[self.member_name(m) for m in self.kill_list])
+				[member_name(m) for m in self.kill_list])
 		else:
 			txt += translate('wakeup_no_kill')
 		self.kill_list = []
@@ -439,8 +446,8 @@ class WerewolfGame:
 			self.villager_voted.append(msg.author)
 			await self.text_channel.send(
 				translate('villager_voted').format(
-					self.member_name(msg.author),
-					self.member_name(member)))
+					member_name(msg.author),
+					member_name(member)))
 			await self.villager_check_voting_end()
 
 
@@ -460,7 +467,7 @@ class WerewolfGame:
 	async def kill_player(self, member):
 		"""Kill player from kill list for real."""
 		# assign dead-role 
-		print(f'Killing player {self.member_name(member)}')
+		print(f'Killing player {member_name(member)}')
 		
 		# we killed a hunter
 		if member in self.player[HUNTER] and member not in self.hunter_voted:
@@ -477,17 +484,17 @@ class WerewolfGame:
 			await member.edit(nick=f'{name} ({translate("dead")})')
 		except discord.errors.Forbidden:
 			await self.text_channel.send(
-				translate('nick_forbidden').format(self.member_name(member)))
+				translate('nick_forbidden').format(member_name(member)))
 		try:
 			await member.edit(mute=True)
 		except discord.errors.Forbidden:
 			await self.text_channel.send(
-				translate('mute_forbidden').format(self.member_name(member)))
+				translate('mute_forbidden').format(member_name(member)))
 		# remove member from player-dict
 		for role, members in self.player.items():
 			if member in members:
 				members.remove(member)
-				print(f'remove player {self.member_name(member)} from {role}')
+				print(f'remove player {member_name(member)} from {role}')
 				break
 		# check, if game is over!
 		return await self.check_game_over()
@@ -508,16 +515,16 @@ class WerewolfGame:
 			try:
 				await member.edit(nick=nick)
 			except discord.errors.Forbidden:
-				print(f'Can not change Nick for user {self.member_name(member)}')
+				print(f'Can not change Nick for user {member_name(member)}')
 			try:
 				await member.edit(mute=False)
 			except discord.errors.Forbidden:
-				print(f'Can not unmute user {self.member_name(member)}')
+				print(f'Can not unmute user {member_name(member)}')
 			await member.remove_roles(self.dead_role)
-			await member.move_to(self.day_channel)
+			await try_to_move_channel(self.day_channel, member)
 		for members in self.player.values():
 			for member in members:
-				await member.move_to(self.day_channel)
+				await try_to_move_channel(self.day_channel, member)
 		self.dead_player = []
 
 	def find_player(self, name_or_nick: str):
