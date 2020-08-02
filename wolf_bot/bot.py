@@ -3,7 +3,7 @@ import os
 
 import pathlib
 
-from random import shuffle, choice
+import random
 
 from dotenv import load_dotenv
 
@@ -13,6 +13,8 @@ from discord.ext.commands import Bot
 
 bot = commands.Bot(command_prefix='!')
 client = discord.Client()
+
+rnd = random.Random(random.random()*1000)
 
 PRESTART = 'prestart' 
 START = 'start'
@@ -47,11 +49,12 @@ def translate(txt, lang=None):
 	if txt in translations[default_lang]:
 		tra = translations[default_lang][txt]
 		if isinstance(tra, list):
-			return choice(tra)
+			return rnd.choice(tra)
 		else:
 			return tra
 	else:
-		return f'TRANSLATE_{text}'
+		print(f'not translated: {txt}')
+		return f'TRANSLATE_{txt}'
 
 
 ### discord helper functions
@@ -72,18 +75,18 @@ def get_voice_channel(channel_name):
 	return None, None
 
 
-def get_text_channel(guilds, channel_name):
+def get_text_channel(channel_name):
 	"""Get text channel by name."""
-	for guild in guilds:
+	for guild in bot.guilds:
 		for channel in guild.text_channels:
 			if channel.name == channel_name:
 				return guild, channel
 	print(f'Error: could not find text channel named {channel_name}')
 	return None, None
 
-def get_channel(guilds, channel_name):
+def get_channel(channel_name):
 	"""Get voice or text channel by name."""
-	for guild in guilds:
+	for guild in bot.guilds:
 		for channel in guild.voice_channels:
 			if channel.name == channel_name:
 				return guild, channel
@@ -107,7 +110,7 @@ class WerewolfGame:
 			}
 		else:
 			self.settings = settings
-		
+		self.ready = False
 		# just set channel names
 		self.text_channel_name = text_channel_name
 		self.day_channel_name = day_channel_name
@@ -164,7 +167,7 @@ class WerewolfGame:
 		# 1. get all member from day-channel
 		day_player = get_member_from_channel(self.day_channel)
 		# 2. shuffle player
-		shuffle(day_player)
+		rnd.shuffle(day_player)
 		# 3. player to their roles
 		await self.assign_roles(day_player)
 		await self.text_channel.send(translate('new_game'))
@@ -233,14 +236,14 @@ class WerewolfGame:
 				for member in value:
 					non_wolf += 1
 					# create channel if needed
-					channel = self.get_create_voice_channel(str(non_wolf))
+					channel = await self.get_create_voice_channel(str(non_wolf))
 					# hide werewolf-channel from user
 					await self.werewolf_channel.set_permissions(
 						member, view_channel=False)
 					move_player.append((channel, member))
 		
 		# suffle so werewolfs do get moved randomly and not first/last
-		shuffle(move_player)
+		rnd.shuffle(move_player)
 
 		# and now the moving itself
 		for channel, member in move_player:
@@ -281,7 +284,7 @@ class WerewolfGame:
 		
 	async def wolfes_check_voting_end(self):
 		"""evaluate the voting if all wolves decided on a victim."""
-		if sum(self.player[WOLF]) == sum(self.wolf_voted):
+		if len(self.player[WOLF]) == len(self.wolf_voted):
 			# get player with most votes
 			member = max(self.wolf_votes, key=self.wolf_votes.get)
 			print('marked to kill: ', member)
@@ -296,21 +299,21 @@ class WerewolfGame:
 		if not self.witch_healed and self.kill_list:
 			# we ASSUME that there can only be 1 person in the kill list by now
 			kill_name = self.member_name(self.kill_list[0])
-			await self.player[WITCH].send(translate('ask_heal').format(kill_name))
+			await self.player[WITCH][0].send(translate('ask_heal').format(kill_name))
 		else:
 			await self.voting_witch_kill()
 
 	async def witch_answered_heal(self, msg):
 		if msg.content.lower() in ['yes', 'ja']:
-			await self.player[WITCH].send(translate('witch_spare'))
+			await self.player[WITCH][0].send(translate('witch_spare'))
 			self.kill_list = []
 			self.witch_healed = True
 			await self.voting_witch_kill()
 		elif msg.content.lower() in ['no', 'nein']:
-			await self.player[WITCH].send(translate('witch_ignore'))
+			await self.player[WITCH][0].send(translate('witch_ignore'))
 			await self.voting_witch_kill()
 		else:
-			await self.player[WITCH].send(translate('witch_repeat_heal'))
+			await self.player[WITCH][0].send(translate('witch_repeat_heal'))
 			return
 		# the witch decided, go to next step: ask her to kill someone
 	
@@ -318,7 +321,7 @@ class WerewolfGame:
 		self.current_state = VOTING_WITCH_KILL
 		# Ask the witch if she wants to poison someone
 		if not self.witch_killed:
-			await self.player[WITCH].send(translate('ask_kill'))
+			await self.player[WITCH][0].send(translate('ask_kill'))
 		else:
 			await self.night_to_day()
 
@@ -328,36 +331,39 @@ class WerewolfGame:
 		# this way a player can not cheat/get invincible by calling himself "no"
 		member = self.find_player(msg.content)
 		if member:
-			await self.player[WITCH].send(translate('witch_kill').format(member))
+			await self.player[WITCH][0].send(translate('witch_kill').format(member))
 			self.kill_list.append(member)
 			self.witch_killed = True
 			# witch done, now it is time to kill and start the day
 			await self.night_to_day()
 		elif msg.content.lower() in ['no', 'nein']:
-			await self.player[WITCH].send(translate('witch_no_kill'))
+			await self.player[WITCH][0].send(translate('witch_no_kill'))
 			# witch done, now it is time to kill and start the day
 			await self.night_to_day()
 		else:
-			await self.player[WITCH].send(translate('witch_repeat_kill'))
+			await self.player[WITCH][0].send(translate('witch_repeat_kill'))
 			return
 		
 	async def night_to_day(self):
 		self.current_state = NIGHT_TO_DAY
 		# kill for real
 		for member in self.kill_list:
-			await self.kill_player(member)
+			game_over = await self.kill_player(member)
+			if game_over:
+				return
 
 		# move all user back to main room (self.day_channel)
 		move_player = self.all_player()
 		# ...in random order to hide wolfs
-		shuffle(move_player)
+		rnd.shuffle(move_player)
 		for member in move_player:
 			await member.move_to(self.day_channel)
 		txt = translate('wakeup')
 		# inform player who are alive which player died
 		if self.kill_list:
 			_and = translate('and')
-			txt += translate('wakeup_kill') + f' {_and} '.join(self.kill_list)
+			txt += translate('wakeup_kill') + f' {_and} '.join(
+				[self.member_name(m) for m in self.kill_list])
 		else:
 			txt += translate('wakeup_no_kill')
 		self.kill_list = []
@@ -372,7 +378,7 @@ class WerewolfGame:
 		await self.text_channel.send(translate('village_start_voting'))
 
 	async def villager_send_vote(self, msg):
-		if msg.author in self.villagers_voted:
+		if msg.author in self.villager_voted:
 			# only one vote per villager, you can NOT change your vote
 			await msg.author.send(translate('already_voted'))
 			return
@@ -391,12 +397,13 @@ class WerewolfGame:
 
 	async def villager_check_voting_end(self):
 		"""Check, if all player voted and kill the player with most votes."""
-		if sum(self.all_player()) == sum(self.villager_voted):
+		if len(self.all_player()) == len(self.villager_voted):
 			member = max(self.villager_votes, key=self.villager_votes.get)
 			print('voted to kill: ', member)
-			await self.kill_player(member)
+			game_over = await self.kill_player(member)
 			# and start the next loop
-			await self.day_to_night()
+			if not game_over:
+				await self.day_to_night()
 		# else: not all player have voted, yet.
 
 	async def kill_player(self, member):
@@ -412,23 +419,25 @@ class WerewolfGame:
 		for role, members in self.player.items():
 			if member in members:
 				members.remove(member)
-				print(f'remove player {self.player_name(member)} from {role}')
+				print(f'remove player {self.member_name(member)} from {role}')
 				break
 		# check, if game is over!
-		await self.check_game_over()
+		return await self.check_game_over()
 
 	async def check_game_over(self):
 		# only 1 wolf left, peasants win!
-		if len(self.all_villagers() == 1):
+		if len(self.all_villagers()) == 1:
 			self.text_channel.send(translate('wolf_win'))
 			await self.cleanup_after_game()
-		elif len(self.player[WOLF] == 0):
-			self.text_channel.send(translate('villager_win'))
+			return True
+		elif len(self.player[WOLF]) == 0:
+			await self.text_channel.send(translate('villager_win'))
 			await self.cleanup_after_game()
+			return True
+		return False
 
 	async def cleanup_after_game(self):
-		self.state = PRESTART
-		dead_role = discord.utils.get(member.server.roles, name='Dead')
+		self.current_state = PRESTART
 		for member, nick in self.dead_player:
 			await member.edit(nick=nick, mute=False)
 			await member.remove_roles(self.dead_role)
@@ -477,10 +486,10 @@ class WerewolfGame:
 
 	## handle discord messages
 	async def handle_channel_message(self, msg):
-		if msg.content == "!start" and self.current_state != PRESTART:
+		if self.current_state == PRESTART and msg.content == "!start":
 			return await self.start()
-		elif state == VOTING_VILLAGE and self.is_player(msg.author):
-			self.villager_send_vote(msg)
+		elif self.current_state == VOTING_VILLAGE and self.is_player(msg.author):
+			await self.villager_send_vote(msg)
 
 	async def handle_message(self, msg):
 		state = self.current_state
@@ -506,20 +515,23 @@ async def on_ready():
 	print(translate('bot_name').format(bot.user.name))
 	await game.get_create_all_channel()
 	await game.create_discord_role()
+	game.ready = True
 
 
 @bot.event
 async def on_message(msg):
 	"""New message received by player."""
+	if not game.ready:
+		return
 	author = msg.author
 	content = msg.content
 
 	if author.name != bot.user.name:
 		print(f'{author}: {content}')
 
-	game.handle_message(msg)
+	await game.handle_message(msg)
 
 
 if __name__ == '__main__':
 	load_dotenv()
-	bot.run(token=os.getenv('DISCORD_TOKEN'))
+	bot.run(os.getenv('DISCORD_TOKEN'))

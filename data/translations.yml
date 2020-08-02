@@ -1,8 +1,9 @@
 de:
-  you_are: "Du bist {}"
+  you_are: "Du bist "
   villager: Dorfbewohner
   witch: Hexe
   werewolf: Werwolf
+  wolf: Werwolf
   hunter: Jäger
   bot_name: "Der Bot heißt: {}"
   mem_in_chan: Ich habe {} Nutzer aus dem Channel {} genommen.
@@ -35,10 +36,11 @@ de:
   wolf_win: Nur ein Dorfbewohner lebt noch, die Werwölfe haben gewonnen!!!
 
 en:
-  you_are: "You are {}"
+  you_are: "You are "
   villager: Villager
   witch: Witch
   werewolf: Werewolf
+  wolf: Werewolf
   hunter: Hunter
   bot_name: "The bot is called: {}"
   mem_in_chan: Got {} users from channel {}.
