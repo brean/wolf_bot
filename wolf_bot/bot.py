@@ -357,6 +357,7 @@ class WerewolfGame:
 
 		# move all user back to main room (self.day_channel)
 		move_player = self.all_player()
+		move_player += [member for member, nick in self.dead_player]
 		# ...in random order to hide wolfs
 		rnd.shuffle(move_player)
 		for member in move_player:
@@ -432,7 +433,7 @@ class WerewolfGame:
 	async def check_game_over(self):
 		# only 1 wolf left, peasants win!
 		if len(self.all_villagers()) == 1:
-			self.text_channel.send(translate('wolf_win'))
+			await self.text_channel.send(translate('wolf_win'))
 			await self.cleanup_after_game()
 		elif len(self.player[WOLF]) == 0:
 			await self.text_channel.send(translate('villager_win'))
