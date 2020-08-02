@@ -30,6 +30,8 @@ STATES = [
 	VOTING_WITCH_KILL, KILLING, NIGHT_TO_DAY, VOTING_VILLAGE
 ]
 
+START_COMMAND = "!start"
+
 VILLAGER = 'villager'
 WITCH = 'witch'
 WOLF = 'wolf'
@@ -487,7 +489,7 @@ class WerewolfGame:
 
 	## handle discord messages
 	async def handle_channel_message(self, msg):
-		if self.current_state == PRESTART and msg.content == "!start":
+		if self.current_state == PRESTART and msg.content == START_COMMAND:
 			return await self.start()
 		elif self.current_state == VOTING_VILLAGE and self.is_player(msg.author):
 			await self.villager_send_vote(msg)
