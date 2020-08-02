@@ -33,10 +33,11 @@ de:
   no: "nein"
   dead: Tod
   villager_win: Und damit ist der letzte Wolf Tod! Die Dorfbewohner gewinnen!!!
-  wolf_win: Nur ein Dorfbewohner lebt noch, die Werwölfe haben gewonnen!!!
+  wolf_win: Kein Dorfbewohner lebt mehr, die Werwölfe haben gewonnen!!!
   change_num_wolf: Setze Anzahl der Werwölfe auf {}
   mute_forbidden: Mir fehlen die Rechte zum stumm schalten von {}. Bitte ignoriert ihn, er ist Tod!
   nick_forbidden: Mir fehlen die Rechte zum umbennen von {}. Er ist aber Tod!
+  hunter_kill_vote: Wen möchtest du erschießen?
 
 en:
   you_are: "You are "
@@ -73,7 +74,8 @@ en:
   no: "no"
   dead: "Dead"
   villager_win: And that's it for the last werewolf! The villagers won!!!
-  wolf_win: Only one villager alive, the werewolfs won!!!
+  wolf_win: No villager alive, the werewolfs won!!!
   change_num_wolf: Set amount of werewolfs to {}
   mute_forbidden: I am missing the rights to mute {}. Please ignore him!
   nick_forbidden: I am missing the rights to nick {}. Ignore him, he is dead!
+  hunter_kill_vote: Who do you like to shoot?

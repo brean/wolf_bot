@@ -25,6 +25,7 @@ VOTING_WITCH_KILL = 'voting_witch_kill'
 NIGHT_TO_DAY = 'night_to_day'
 VOTING_VILLAGE = 'voting_village'
 KILLING = 'killing'
+VOTING_HUNTER = 'voting_hunter'
 STATES = [
 	PRESTART, START, DAY_TO_NIGHT, VOTING_WOLF, VOTING_WITCH_HEAL, 
 	VOTING_WITCH_KILL, KILLING, NIGHT_TO_DAY, VOTING_VILLAGE
@@ -108,7 +109,7 @@ class WerewolfGame:
 			self.settings = {
 				WITCH: 1,
 				WOLF: 1,
-				# HUNTER: 1,
+				HUNTER: 1,
 			}
 		else:
 			self.settings = settings
@@ -164,7 +165,7 @@ class WerewolfGame:
 	async def start(self):
 		"""Start a new game!"""
 		self.cleanup()
-		self.current_state = START
+		self.set_state(START)
 		print(translate('new_game'))
 		# 1. get all member from day-channel
 		day_player = get_member_from_channel(self.day_channel)
@@ -185,7 +186,7 @@ class WerewolfGame:
 		self.kill_list = []
 
 		# current game state
-		self.current_state = PRESTART
+		self.set_state(PRESTART)
 
 		# True, if the witch has used her ealing potion
 		self.witch_healed = False
@@ -196,6 +197,12 @@ class WerewolfGame:
 		# player killed so far
 		self.dead_player = []
 
+		# list of hunter that voted
+		self.hunter_voted = []
+
+	def set_state(self, state):
+		print(f'switch to state: {state}')
+		self.current_state = state
 
 	async def assign_roles(self, player: list):
 		"""Assign all roles to player."""
@@ -230,7 +237,7 @@ class WerewolfGame:
 	# -- MAIN GAME LOOP --
 	async def day_to_night(self):
 		"""Switch from day to night, move everyone in his/her own little voice chat."""
-		self.current_state = DAY_TO_NIGHT
+		self.set_state(DAY_TO_NIGHT)
 		move_player = []
 		non_wolf = 0
 		for key, value in self.player.items():
@@ -260,13 +267,31 @@ class WerewolfGame:
 
 	async def voting_wolfs_start(self):
 		"""Send text to each werewolf that he/she has to vote for a kill."""
-		self.current_state = VOTING_WOLF
+		self.set_state(VOTING_WOLF)
 		self.wolf_votes = {}
 		self.wolf_voted = []
 		for wolf in self.player[WOLF]:
 			await wolf.send(translate('who_to_kill'))
 		# end of this part of the round, we now need to wait for incoming 
 		# messages from wolfs
+
+	async def hunter_answered(self, msg):
+		if msg.author in self.hunter_voted:
+			await msg.author.send(translate('already_voted'))
+			return
+		if msg.author not in self.kill_list:
+			print('player will not die')
+			return
+		member = self.find_player(msg.content)
+		if not member:
+			await msg.author.send(translate('does_not_exist').format(msg.content))
+			return
+		self.hunter_voted += [msg.author]
+		self.kill_list.append(member)
+		# TODO: feedback for hunter that member will be killed
+		await self.execute_kill_list()
+		await self.wake_up()
+		
 
 	async def wolf_send_vote(self, msg):
 		if msg.author in self.wolf_voted:
@@ -300,7 +325,7 @@ class WerewolfGame:
 		# else: voting not over, wait for other player to vote
 
 	async def voting_witch_heal(self):
-		self.current_state = VOTING_WITCH_HEAL
+		self.set_state(VOTING_WITCH_HEAL)
 		# We tell the witch who will get killed and ask to heal
 		if not self.witch_healed and self.kill_list:
 			# we ASSUME that there can only be 1 person in the kill list by now
@@ -324,7 +349,7 @@ class WerewolfGame:
 		# the witch decided, go to next step: ask her to kill someone
 	
 	async def voting_witch_kill(self):
-		self.current_state = VOTING_WITCH_KILL
+		self.set_state(VOTING_WITCH_KILL)
 		# Ask the witch if she wants to poison someone
 		if not self.witch_killed:
 			await self.player[WITCH][0].send(translate('ask_kill'))
@@ -350,15 +375,25 @@ class WerewolfGame:
 			await self.player[WITCH][0].send(translate('witch_repeat_kill'))
 			return
 		
-	async def night_to_day(self):
-		self.current_state = NIGHT_TO_DAY
+	async def execute_kill_list(self):
 		# kill for real
+		kill_list = []
 		for member in self.kill_list:
+			if member in self.player[HUNTER]:
+				kill_list.append(member)
+			else:
+				kill_list.insert(0, member)
+		for member in kill_list:
 			await self.kill_player(member)
-			if self.current_state == PRESTART:
-				# Game Over!
-				return
-
+			
+	async def night_to_day(self):
+		self.set_state(NIGHT_TO_DAY)
+		await self.execute_kill_list()
+		
+		if self.current_state == PRESTART:
+			# Game Over!
+			return
+		
 		# move all user back to main room (self.day_channel)
 		move_player = self.all_player()
 		move_player += [member for member, nick in self.dead_player]
@@ -366,6 +401,12 @@ class WerewolfGame:
 		rnd.shuffle(move_player)
 		for member in move_player:
 			await member.move_to(self.day_channel)
+
+		if self.current_state != VOTING_HUNTER:
+			# let the hunter has to vote but we move everyone back to awake-channel.
+			await self.wake_up()
+
+	async def wake_up(self):
 		txt = translate('wakeup')
 		# inform player who are alive which player died
 		if self.kill_list:
@@ -379,7 +420,7 @@ class WerewolfGame:
 		await self.voting_village_start()
 
 	async def voting_village_start(self):
-		self.current_state = VOTING_VILLAGE
+		self.set_state(VOTING_VILLAGE)
 		self.villager_votes = {}
 		self.villager_voted = []
 		# send message in text_channel that that voting started
@@ -420,6 +461,13 @@ class WerewolfGame:
 		"""Kill player from kill list for real."""
 		# assign dead-role 
 		print(f'Killing player {self.member_name(member)}')
+		
+		# we killed a hunter
+		if member in self.player[HUNTER] and member not in self.hunter_voted:
+			self.set_state(VOTING_HUNTER)
+			await member.send(translate('hunter_kill_vote'))
+			return
+
 		await member.add_roles(self.dead_role)
 		# add user to "dead"-list with old user nick to rename after match
 		self.dead_player += [(member, member.nick)]
@@ -446,7 +494,7 @@ class WerewolfGame:
 
 	async def check_game_over(self):
 		# only 1 wolf left, peasants win!
-		if len(self.all_villagers()) == 1:
+		if len(self.all_villagers()) == 0:
 			await self.text_channel.send(translate('wolf_win'))
 			await self.cleanup_after_game()
 		elif len(self.player[WOLF]) == 0:
@@ -455,17 +503,21 @@ class WerewolfGame:
 
 	async def cleanup_after_game(self):
 		# Game Over - reset to PRESTART
-		self.current_state = PRESTART
+		self.set_state(PRESTART)
 		for member, nick in self.dead_player:
 			try:
 				await member.edit(nick=nick)
 			except discord.errors.Forbidden:
-				pass  # error ignored
+				print(f'Can not change Nick for user {self.member_name(member)}')
 			try:
 				await member.edit(mute=False)
 			except discord.errors.Forbidden:
-				pass  # error ignored
+				print(f'Can not unmute user {self.member_name(member)}')
 			await member.remove_roles(self.dead_role)
+			await member.move_to(self.day_channel)
+		for members in self.player.values():
+			for member in members:
+				await member.move_to(self.day_channel)
 		self.dead_player = []
 
 	def find_player(self, name_or_nick: str):
@@ -486,6 +538,10 @@ class WerewolfGame:
 	def is_witch(self, member):
 		"""Returns True if the player is the witch."""
 		return member in self.player[WITCH]
+
+	def is_hunter(self, member):
+		"""Returns True if the player is a hunter."""
+		return member in self.player[HUNTER]
 
 	def is_player(self, member):
 		"""Returns true if the given member plays the game."""
@@ -537,6 +593,8 @@ class WerewolfGame:
 			return await self.witch_answered_heal(msg)
 		elif state == VOTING_WITCH_KILL and self.is_witch(msg.author):
 			return await self.witch_answered_kill(msg)
+		elif state == VOTING_HUNTER and self.is_hunter(msg.author):
+			return await self.hunter_answered(msg)
 		
 		# ignore all other messages to this bot
 
