@@ -16,7 +16,7 @@ client = discord.Client()
 
 rnd = random.Random(random.random()*1000)
 
-PRESTART = 'prestart' 
+PRESTART = 'prestart'  # before the start of the Game or Game Over
 START = 'start'
 DAY_TO_NIGHT = 'day_to_night'
 VOTING_WOLF = 'voting_wolf'
@@ -348,8 +348,9 @@ class WerewolfGame:
 		self.current_state = NIGHT_TO_DAY
 		# kill for real
 		for member in self.kill_list:
-			game_over = await self.kill_player(member)
-			if game_over:
+			await self.kill_player(member)
+			if self.current_state == PRESTART:
+				# Game Over!
 				return
 
 		# move all user back to main room (self.day_channel)
@@ -400,10 +401,12 @@ class WerewolfGame:
 		if len(self.all_player()) == len(self.villager_voted):
 			member = max(self.villager_votes, key=self.villager_votes.get)
 			print('voted to kill: ', member)
-			game_over = await self.kill_player(member)
+			await self.kill_player(member)
 			# and start the next loop
-			if not game_over:
-				await self.day_to_night()
+			if self.current_state == PRESTART:
+				# Game Over
+				return
+			await self.day_to_night()
 		# else: not all player have voted, yet.
 
 	async def kill_player(self, member):
@@ -429,14 +432,12 @@ class WerewolfGame:
 		if len(self.all_villagers()) == 1:
 			self.text_channel.send(translate('wolf_win'))
 			await self.cleanup_after_game()
-			return True
 		elif len(self.player[WOLF]) == 0:
 			await self.text_channel.send(translate('villager_win'))
 			await self.cleanup_after_game()
-			return True
-		return False
 
 	async def cleanup_after_game(self):
+		# Game Over - reset to PRESTART
 		self.current_state = PRESTART
 		for member, nick in self.dead_player:
 			await member.edit(nick=nick, mute=False)
